@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* react-calendar 커스텀 */
+.react-calendar {
+  @apply w-full border-0 font-sans;
+}
+.react-calendar__tile--active {
+  @apply bg-primary-600 text-white rounded-lg;
+}
+.react-calendar__tile:hover {
+  @apply bg-primary-50 rounded-lg;
+}
