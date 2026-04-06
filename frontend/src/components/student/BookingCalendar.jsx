@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import {
   format, isSameDay, isToday, startOfMonth, getDay,
   getDaysInMonth, addMonths, subMonths, startOfWeek, addDays,
@@ -33,6 +33,16 @@ export default function BookingCalendar() {
     () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
     [weekStart]
   )
+
+  const gridRef = useRef(null)
+
+  useEffect(() => {
+    if (!gridRef.current) return
+    const now = new Date()
+    const slotIndex = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0)
+    const ROW_H = 24 // h-6 = 24px
+    gridRef.current.scrollTop = Math.max(0, (slotIndex - 3) * ROW_H)
+  }, [])
 
   useEffect(() => { loadSlots() }, [])
 
@@ -127,7 +137,7 @@ export default function BookingCalendar() {
       </div>
 
       {/* ── 주간 그리드 ── */}
-      <div className="relative overflow-auto" style={{ maxHeight: 600 }}>
+      <div ref={gridRef} className="relative overflow-auto" style={{ maxHeight: 600 }}>
 
         {/* 스티키 헤더 */}
         <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
