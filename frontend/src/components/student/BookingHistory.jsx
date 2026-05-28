@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { useTranslation } from 'react-i18next'
+import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
 import { bookingsApi } from '../../api'
 import ReminderSettings from '../common/ReminderSettings'
 
-const STATUS_LABEL = { pending: '대기중', confirmed: '확정', cancelled: '취소됨' }
-const STATUS_COLOR = {
-  pending:   'bg-yellow-100 text-yellow-700',
-  confirmed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
 export default function BookingHistory() {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
+
+  const STATUS_LABEL = {
+    pending:   t('booking_history.status_pending'),
+    confirmed: t('booking_history.status_confirmed'),
+    cancelled: t('booking_history.status_cancelled'),
+  }
+  const STATUS_COLOR = {
+    pending:   'bg-yellow-100 text-yellow-700',
+    confirmed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-gray-100 text-gray-500',
+  }
+
   const [bookings, setBookings]   = useState([])
   const [reminders, setReminders] = useState({})
 
@@ -33,18 +41,18 @@ export default function BookingHistory() {
       })
       setReminders(init)
     } catch {
-      toast.error('예약 내역을 불러오지 못했습니다.')
+      toast.error(t('booking_history.error_load'))
     }
   }
 
   async function handleCancel(id) {
-    if (!confirm('예약을 취소하시겠습니까?')) return
+    if (!confirm(t('booking_history.cancel_confirm'))) return
     try {
       await bookingsApi.cancel(id)
-      toast.success('예약이 취소되었습니다.')
+      toast.success(t('booking_history.cancel_success'))
       loadBookings()
     } catch {
-      toast.error('취소에 실패했습니다.')
+      toast.error(t('booking_history.cancel_error'))
     }
   }
 
@@ -52,19 +60,19 @@ export default function BookingHistory() {
     setReminders(p => ({ ...p, [bookingId]: newVal }))
     try {
       await bookingsApi.updateReminders(bookingId, newVal)
-      toast.success('알림 설정이 저장되었습니다.')
+      toast.success(t('booking_history.reminder_saved'))
     } catch {
-      toast.error('알림 설정 저장에 실패했습니다.')
+      toast.error(t('booking_history.reminder_error'))
     }
   }
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">예약 내역</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('booking_history.title')}</h3>
 
       <ul className="space-y-3 max-h-[500px] overflow-y-auto">
         {bookings.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">예약 내역이 없습니다.</p>
+          <p className="text-sm text-gray-400 text-center py-4">{t('booking_history.empty')}</p>
         )}
 
         {bookings.map(b => (
@@ -76,12 +84,12 @@ export default function BookingHistory() {
             </div>
 
             <p className="text-sm font-medium text-gray-800">
-              {format(new Date(b.time_slots.start_time), 'M월 d일 (EEE) HH:mm', { locale: ko })}
+              {format(new Date(b.time_slots.start_time), t('booking_history.date_format'), { locale: dateLocale })}
               {' ~ '}
               {format(new Date(b.time_slots.end_time), 'HH:mm')}
             </p>
-            <p className="text-xs text-gray-500 mt-1">선생님: {b.teacher?.full_name}</p>
-            {b.notes && <p className="text-xs text-gray-500 mt-1">메모: {b.notes}</p>}
+            <p className="text-xs text-gray-500 mt-1">{t('booking_history.teacher_prefix')}: {b.teacher?.full_name}</p>
+            {b.notes && <p className="text-xs text-gray-500 mt-1">{t('booking_history.memo_prefix')}: {b.notes}</p>}
 
             {b.status !== 'cancelled' && reminders[b.id] && (
               <div className="mt-3 pt-3 border-t border-gray-50">
@@ -97,7 +105,7 @@ export default function BookingHistory() {
                 onClick={() => handleCancel(b.id)}
                 className="mt-3 text-xs text-red-400 hover:text-red-600 transition-colors"
               >
-                취소하기
+                {t('booking_history.cancel_btn')}
               </button>
             )}
           </li>

@@ -1,17 +1,10 @@
 import { useEffect, useState } from 'react'
 import { format, differenceInMinutes } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { useTranslation } from 'react-i18next'
+import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
 import { bookingsApi, packagesApi } from '../../api'
 
-const STATUS_LABEL = { pending: '대기', confirmed: '확정', cancelled: '취소' }
-const STATUS_COLOR = {
-  pending:   'bg-yellow-100 text-yellow-700',
-  confirmed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-gray-100 text-gray-500',
-}
-
-// 슬롯 길이로 패키지 duration 추정 (25±5 또는 50±5 범위)
 function inferDuration(startTime, endTime) {
   const mins = differenceInMinutes(new Date(endTime), new Date(startTime))
   if (Math.abs(mins - 25) <= 5) return 25
@@ -20,6 +13,20 @@ function inferDuration(startTime, endTime) {
 }
 
 function BookingItem({ b, onConfirm, onCancel }) {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
+
+  const STATUS_LABEL = {
+    pending:   t('booking_list.status_pending'),
+    confirmed: t('booking_list.status_confirmed'),
+    cancelled: t('booking_list.status_cancelled'),
+  }
+  const STATUS_COLOR = {
+    pending:   'bg-yellow-100 text-yellow-700',
+    confirmed: 'bg-green-100 text-green-700',
+    cancelled: 'bg-gray-100 text-gray-500',
+  }
+
   return (
     <li className="border border-gray-100 rounded-xl p-4">
       <div className="flex items-center justify-between mb-2">
@@ -32,12 +39,12 @@ function BookingItem({ b, onConfirm, onCancel }) {
       </div>
 
       <p className="text-sm font-medium text-gray-800">
-        {format(new Date(b.time_slots.start_time), 'M월 d일 (EEE) HH:mm', { locale: ko })}
+        {format(new Date(b.time_slots.start_time), t('booking_list.date_format'), { locale: dateLocale })}
         {' ~ '}
         {format(new Date(b.time_slots.end_time), 'HH:mm')}
       </p>
-      <p className="text-xs mt-1 text-gray-500">학생: {b.profiles?.full_name}</p>
-      {b.notes && <p className="text-xs mt-1 text-gray-500">메모: {b.notes}</p>}
+      <p className="text-xs mt-1 text-gray-500">{t('booking_list.student_prefix')}: {b.profiles?.full_name}</p>
+      {b.notes && <p className="text-xs mt-1 text-gray-500">{t('booking_list.memo_prefix')}: {b.notes}</p>}
 
       {b.status === 'pending' && (
         <div className="flex gap-2 mt-3">
@@ -45,13 +52,13 @@ function BookingItem({ b, onConfirm, onCancel }) {
             onClick={() => onConfirm(b.id)}
             className="flex-1 text-xs bg-green-500 text-white py-1.5 rounded-lg hover:bg-green-600 transition-colors"
           >
-            확정
+            {t('booking_list.confirm_btn')}
           </button>
           <button
             onClick={() => onCancel(b.id)}
             className="flex-1 text-xs bg-red-400 text-white py-1.5 rounded-lg hover:bg-red-500 transition-colors"
           >
-            거절
+            {t('booking_list.reject_btn')}
           </button>
         </div>
       )}
@@ -60,7 +67,7 @@ function BookingItem({ b, onConfirm, onCancel }) {
           onClick={() => onCancel(b.id)}
           className="mt-3 w-full text-xs text-red-400 hover:text-red-600 transition-colors"
         >
-          취소하기
+          {t('booking_list.cancel_btn')}
         </button>
       )}
     </li>
@@ -68,10 +75,11 @@ function BookingItem({ b, onConfirm, onCancel }) {
 }
 
 function CompleteItem({ b, packages, onComplete }) {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
   const duration  = inferDuration(b.time_slots.start_time, b.time_slots.end_time)
   const studentId = b.profiles?.id ?? b.student_id
 
-  // 이 학생의 활성 패키지 — duration 추론 가능 시 해당 종류만, 불가 시 전체
   const studentPkgs = packages.filter(p => p.student?.id === studentId && p.is_active)
   const matchedPkgs = duration
     ? studentPkgs.filter(p => p.duration_minutes === duration)
@@ -85,33 +93,32 @@ function CompleteItem({ b, packages, onComplete }) {
     <li className="border border-amber-100 bg-amber-50/30 rounded-xl p-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
-          완료 대기
+          {t('booking_list.complete_wait')}
         </span>
       </div>
 
       <p className="text-sm font-medium text-gray-800">
-        {format(new Date(b.time_slots.start_time), 'M월 d일 (EEE) HH:mm', { locale: ko })}
+        {format(new Date(b.time_slots.start_time), t('booking_list.date_format'), { locale: dateLocale })}
         {' ~ '}
         {format(new Date(b.time_slots.end_time), 'HH:mm')}
       </p>
-      <p className="text-xs mt-1 text-gray-500">학생: {b.profiles?.full_name}</p>
+      <p className="text-xs mt-1 text-gray-500">{t('booking_list.student_prefix')}: {b.profiles?.full_name}</p>
       {duration && (
-        <p className="text-xs mt-0.5 text-gray-400">{duration}분 수업</p>
+        <p className="text-xs mt-0.5 text-gray-400">{duration}{t('booking_list.duration_suffix')}</p>
       )}
 
-      {/* 패키지 선택 */}
       {matchedPkgs.length > 1 && (
         <div className="mt-3">
-          <label className="text-xs text-gray-500 block mb-1">차감할 패키지</label>
+          <label className="text-xs text-gray-500 block mb-1">{t('booking_list.pkg_select_label')}</label>
           <select
             value={selectedPkgId}
             onChange={e => setSelectedPkgId(e.target.value)}
             className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-teal-300"
           >
-            <option value="">패키지 없이 완료</option>
+            <option value="">{t('booking_list.pkg_no_deduct')}</option>
             {matchedPkgs.map(p => (
               <option key={p.id} value={p.id}>
-                {p.label || `${p.duration_minutes}분 패키지`} (남은 수업: {p.total_lessons - p.completed_lessons})
+                {p.label || t('booking_list.pkg_label_fallback', { duration: p.duration_minutes })} ({t('booking_list.pkg_remaining')}: {p.total_lessons - p.completed_lessons})
               </option>
             ))}
           </select>
@@ -120,7 +127,7 @@ function CompleteItem({ b, packages, onComplete }) {
 
       {matchedPkgs.length === 0 && (
         <p className="text-xs text-gray-400 mt-2">
-          활성 수업권 패키지 없음 — 패키지 없이 완료 처리됩니다.
+          {t('booking_list.no_active_pkg')}
         </p>
       )}
 
@@ -128,13 +135,14 @@ function CompleteItem({ b, packages, onComplete }) {
         onClick={() => onComplete(b.id, selectedPkgId || null)}
         className="mt-3 w-full text-xs bg-teal-500 text-white py-1.5 rounded-lg hover:bg-teal-600 transition-colors"
       >
-        수업 완료 확인
+        {t('booking_list.complete_btn')}
       </button>
     </li>
   )
 }
 
 export default function BookingList() {
+  const { t } = useTranslation()
   const [upcoming, setUpcoming]       = useState([])
   const [awaitingComplete, setAwaiting] = useState([])
   const [packages, setPackages]       = useState([])
@@ -162,49 +170,48 @@ export default function BookingList() {
       )
       setPackages(pkgs)
     } catch {
-      toast.error('데이터를 불러오지 못했습니다.')
+      toast.error(t('booking_list.error_load'))
     }
   }
 
   async function handleConfirm(id) {
     try {
       await bookingsApi.confirm(id)
-      toast.success('예약이 확정되었습니다.')
+      toast.success(t('booking_list.confirm_success'))
       load()
     } catch {
-      toast.error('확정에 실패했습니다.')
+      toast.error(t('booking_list.confirm_error'))
     }
   }
 
   async function handleCancel(id) {
-    if (!confirm('예약을 취소하시겠습니까?')) return
+    if (!confirm(t('booking_list.cancel_confirm'))) return
     try {
       await bookingsApi.cancel(id)
-      toast.success('예약이 취소되었습니다.')
+      toast.success(t('booking_list.cancel_success'))
       load()
     } catch {
-      toast.error('취소에 실패했습니다.')
+      toast.error(t('booking_list.cancel_error'))
     }
   }
 
   async function handleComplete(id, packageId) {
     try {
       await bookingsApi.complete(id, packageId)
-      toast.success(packageId ? '수업 완료! 수업권에서 차감되었습니다.' : '수업 완료 처리되었습니다.')
+      toast.success(packageId ? t('booking_list.complete_with_pkg') : t('booking_list.complete_no_pkg'))
       load()
     } catch (err) {
-      const msg = err?.response?.data?.error ?? '완료 처리에 실패했습니다.'
+      const msg = err?.response?.data?.error ?? t('booking_list.complete_error')
       toast.error(msg)
     }
   }
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 space-y-6">
-      {/* 완료 대기 섹션 */}
       {awaitingComplete.length > 0 && (
         <div>
           <h3 className="text-base font-semibold text-gray-800 mb-3">
-            완료 확인 필요
+            {t('booking_list.section_complete')}
             <span className="ml-2 text-xs font-normal text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
               {awaitingComplete.length}
             </span>
@@ -222,12 +229,11 @@ export default function BookingList() {
         </div>
       )}
 
-      {/* 예약 요청 섹션 */}
       <div>
-        <h3 className="text-base font-semibold text-gray-800 mb-3">예약 요청</h3>
+        <h3 className="text-base font-semibold text-gray-800 mb-3">{t('booking_list.section_requests')}</h3>
         <ul className="space-y-3 max-h-[400px] overflow-y-auto">
           {upcoming.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4">예약 요청이 없습니다.</p>
+            <p className="text-sm text-gray-400 text-center py-4">{t('booking_list.requests_empty')}</p>
           )}
           {upcoming.map(b => (
             <BookingItem

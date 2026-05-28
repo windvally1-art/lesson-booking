@@ -1,19 +1,20 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import SlotManager    from '../components/teacher/SlotManager'
 import BookingList    from '../components/teacher/BookingList'
 import PackageManager from '../components/teacher/PackageManager'
 
-const TABS = [
-  { id: 'schedule', label: '일정 관리' },
-  { id: 'packages', label: '수업권 관리' },
-]
-
 export default function TeacherDashboard() {
   const [activeTab, setActiveTab] = useState('schedule')
+  const { t } = useTranslation()
+
+  const TABS = [
+    { id: 'schedule', label: t('teacher_dashboard.tab_schedule') },
+    { id: 'packages', label: t('teacher_dashboard.tab_packages') },
+  ]
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      {/* 탭 */}
       <div className="flex gap-1 mb-6 bg-gray-100 rounded-xl p-1 w-fit">
         {TABS.map(tab => (
           <button

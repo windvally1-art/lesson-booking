@@ -3,7 +3,8 @@ import {
   format, isSameDay, isToday, startOfMonth, getDay,
   getDaysInMonth, addMonths, subMonths, startOfWeek, addDays,
 } from 'date-fns'
-import { ko } from 'date-fns/locale'
+import { useTranslation } from 'react-i18next'
+import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
 import { slotsApi, bookingsApi } from '../../api'
 import PushPermission from '../common/PushPermission'
@@ -14,11 +15,12 @@ const TIME_SLOTS   = Array.from({ length: 48 }, (_, i) => {
   const m = i % 2 === 0 ? '00' : '30'
   return `${h}:${m}`
 })
-const WEEK_DAY_EN  = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-const WEEK_DAY_KO  = ['일', '월', '화', '수', '목', '금', '토']
 const DEFAULT_REMINDERS = { remind_1day: true, remind_1hour: true, remind_10min: true }
 
 export default function BookingCalendar() {
+  const { t } = useTranslation()
+  const dateLocale = useDateLocale()
+
   const [slots, setSlots]               = useState([])
   const [myBookings, setMyBookings]     = useState([])
   const [baseDate, setBaseDate]         = useState(new Date())
@@ -40,7 +42,7 @@ export default function BookingCalendar() {
     if (!gridRef.current) return
     const now = new Date()
     const slotIndex = now.getHours() * 2 + (now.getMinutes() >= 30 ? 1 : 0)
-    const ROW_H = 24 // h-6 = 24px
+    const ROW_H = 24
     gridRef.current.scrollTop = Math.max(0, (slotIndex - 3) * ROW_H)
   }, [])
 
@@ -54,7 +56,7 @@ export default function BookingCalendar() {
       ])
       setSlots(available)
       setMyBookings(bookings.filter(b => b.status !== 'cancelled'))
-    } catch { toast.error('데이터를 불러오지 못했습니다.') }
+    } catch { toast.error(t('booking_calendar.error_load')) }
   }
 
   function isPast(day, time) {
@@ -99,19 +101,18 @@ export default function BookingCalendar() {
         notes,
         reminders,
       })
-      toast.success('예약 요청이 전송되었습니다!')
+      toast.success(t('booking_calendar.book_success'))
       setSelectedSlot(null)
       setNotes('')
       setReminders(DEFAULT_REMINDERS)
       loadSlots()
     } catch (err) {
-      toast.error(err.response?.data?.error || '예약에 실패했습니다.')
+      toast.error(err.response?.data?.error || t('booking_calendar.book_error'))
     } finally {
       setSubmitting(false)
     }
   }
 
-  // ── 월 달력 계산 ────────────────────────────────
   function hasSlotOnDate(date) {
     return slots.some(s => isSameDay(new Date(s.start_time), date))
   }
@@ -127,31 +128,30 @@ export default function BookingCalendar() {
     ]
   }, [baseDate])
 
+  const weekDayLabels = t('booking_calendar.week_days', { returnObjects: true })
+
   return (
     <section className="bg-white rounded-2xl shadow-sm overflow-hidden">
 
-      {/* ── 헤더 ── */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-800">수업 예약</h2>
+        <h2 className="text-base font-semibold text-gray-800">{t('booking_calendar.title')}</h2>
         <PushPermission />
       </div>
 
-      {/* ── 주간 그리드 ── */}
       <div ref={gridRef} className="relative overflow-auto" style={{ maxHeight: 600 }}>
 
-        {/* 스티키 헤더 */}
         <div className="sticky top-0 bg-white z-10 border-b border-gray-100">
           <button
             onClick={() => setShowCalendar(p => !p)}
             className="pl-14 pr-1 pt-2 pb-1 text-sm font-semibold text-gray-700 flex items-center gap-1 hover:text-teal-500 transition-colors"
           >
-            {format(weekStart, 'M월', { locale: ko })}
+            {format(weekStart, t('booking_calendar.date_month'), { locale: dateLocale })}
             <span className={`text-base transition-transform duration-200 ${showCalendar ? 'rotate-180' : ''}`}>▾</span>
           </button>
           <div className="flex pl-14 pr-1">
             {weekDays.map((day, i) => (
               <div key={i} className="flex-1 flex flex-col items-center py-1">
-                <span className="text-[12px] text-gray-400">{WEEK_DAY_EN[i]}</span>
+                <span className="text-[13px] text-gray-400">{weekDayLabels[i]}</span>
                 <span className={`text-sm font-semibold mt-0.5 w-7 h-7 flex items-center justify-center rounded-full ${
                   isToday(day) ? 'text-red-500' : 'text-gray-700'
                 }`}>
@@ -162,18 +162,17 @@ export default function BookingCalendar() {
           </div>
         </div>
 
-        {/* 달력 오버레이 */}
         {showCalendar && (
           <div className="absolute inset-x-0 bottom-0 bg-white border-t border-gray-100 px-4 pt-4 pb-5 z-20 shadow-lg">
             <div className="flex items-center gap-3 mb-3">
               <button onClick={() => setBaseDate(d => subMonths(d, 1))}
                 className="w-7 h-7 flex items-center justify-center rounded hover:bg-teal-50 text-teal-500 font-bold text-sm">‹</button>
-              <h3 className="text-base font-bold text-gray-800">{format(baseDate, 'yyyy년 M월')}</h3>
+              <h3 className="text-base font-bold text-gray-800">{format(baseDate, t('booking_calendar.date_full'))}</h3>
               <button onClick={() => setBaseDate(d => addMonths(d, 1))}
                 className="w-7 h-7 flex items-center justify-center rounded hover:bg-teal-50 text-teal-500 font-bold text-sm">›</button>
             </div>
             <div className="grid grid-cols-7 mb-1">
-              {WEEK_DAY_KO.map(d => (
+              {weekDayLabels.map(d => (
                 <div key={d} className="text-center text-xs text-gray-400 py-1">{d}</div>
               ))}
             </div>
@@ -199,7 +198,6 @@ export default function BookingCalendar() {
           </div>
         )}
 
-        {/* 시간 그리드 */}
         {TIME_SLOTS.map(time => {
           const isHour = time.endsWith(':00')
           return (
@@ -219,10 +217,10 @@ export default function BookingCalendar() {
                     key={di}
                     onClick={() => !past && !myBooking && handleCellClick(day, time)}
                     title={
-                      past        ? '지난 시간'
-                      : isPending   ? '내 예약 신청중'
-                      : isConfirmed ? '예약 확정됨'
-                      : slot      ? '클릭하여 선택'
+                      past        ? t('booking_calendar.past')
+                      : isPending   ? t('booking_calendar.my_pending')
+                      : isConfirmed ? t('booking_calendar.confirmed')
+                      : slot      ? t('booking_calendar.click_select')
                       : undefined
                     }
                     className={`flex-1 h-6 border-l border-gray-100 transition-colors ${
@@ -242,27 +240,27 @@ export default function BookingCalendar() {
         })}
       </div>
 
-      {/* ── 범례 ── */}
       <div className="flex items-center gap-3 flex-wrap px-4 py-2 border-t border-gray-100 text-xs text-gray-400">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-teal-300 inline-block" />예약 가능</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-teal-600 inline-block" />선택됨</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 inline-block" />신청중</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-400 inline-block" />확정</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-teal-300 inline-block" />{t('booking_calendar.legend_available')}</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-teal-600 inline-block" />{t('booking_calendar.legend_selected')}</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-yellow-300 inline-block" />{t('booking_calendar.legend_pending')}</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-green-400 inline-block" />{t('booking_calendar.legend_confirmed')}</span>
       </div>
 
-      {/* ── 예약 패널 ── */}
       {selectedSlot && (
         <div className="border-t border-gray-100 px-4 py-4 space-y-3 bg-teal-50">
           <p className="text-sm font-semibold text-teal-700">
-            {format(new Date(selectedSlot.start_time), 'M월 d일 (EEE) HH:mm', { locale: ko })}
+            {format(new Date(selectedSlot.start_time), t('booking_calendar.date_slot'), { locale: dateLocale })}
             {' ~ '}
             {format(new Date(selectedSlot.end_time), 'HH:mm')}
-            <span className="ml-2 font-normal text-teal-600 text-xs">{selectedSlot.profiles?.full_name} 선생님</span>
+            <span className="ml-2 font-normal text-teal-600 text-xs">
+              {selectedSlot.profiles?.full_name} {t('booking_calendar.teacher_suffix')}
+            </span>
           </p>
           <textarea
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder="선생님께 전할 메모 (선택)"
+            placeholder={t('booking_calendar.notes_placeholder')}
             rows={2}
             className="w-full border border-teal-200 bg-white rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400 resize-none"
           />
@@ -272,7 +270,7 @@ export default function BookingCalendar() {
             disabled={submitting}
             className="w-full bg-teal-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-teal-600 disabled:opacity-50 transition-colors"
           >
-            {submitting ? '예약 중...' : '예약 신청하기'}
+            {submitting ? t('booking_calendar.book_loading') : t('booking_calendar.book_submit')}
           </button>
         </div>
       )}

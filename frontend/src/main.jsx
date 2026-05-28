@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './context/AuthContext'
 import App from './App'
+import './i18n'
 import './index.css'
 
 // 서비스워커 등록 (PWA + 푸쉬 알림)
