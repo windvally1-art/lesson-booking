@@ -62,4 +62,25 @@ export const bookingsApi = {
 
   updateReminders: (id, reminders) =>
     api.patch(`/api/bookings/${id}/reminders`, reminders).then(r => r.data),
+
+  complete: (id, packageId) =>
+    api.patch(`/api/bookings/${id}/complete`, { package_id: packageId ?? null }).then(r => r.data),
+}
+
+// ── 수업권 패키지 ─────────────────────────────
+export const packagesApi = {
+  list: () =>
+    api.get('/api/packages').then(r => r.data),
+
+  listStudents: () =>
+    api.get('/api/packages/students').then(r => r.data),
+
+  create: (payload) =>
+    api.post('/api/packages', payload).then(r => r.data),
+
+  update: (id, payload) =>
+    api.patch(`/api/packages/${id}`, payload).then(r => r.data),
+
+  remove: (id) =>
+    api.delete(`/api/packages/${id}`).then(r => r.data),
 }

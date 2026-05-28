@@ -119,6 +119,69 @@ router.patch('/:id/reminders', requireAuth, requireRole('student'), async (req, 
   } catch (err) { next(err) }
 })
 
+// PATCH /api/bookings/:id/complete — 선생님이 수업 완료 확인
+router.patch('/:id/complete', requireAuth, requireRole('teacher'), async (req, res, next) => {
+  try {
+    const { package_id } = req.body
+
+    // 예약 + 슬롯 조회
+    const { data: booking, error: fetchErr } = await supabase
+      .from('bookings')
+      .select('*, time_slots(start_time, end_time)')
+      .eq('id', req.params.id)
+      .eq('teacher_id', req.profile.id)
+      .single()
+
+    if (fetchErr || !booking) {
+      return res.status(404).json({ error: '예약을 찾을 수 없습니다.' })
+    }
+    if (booking.status !== 'confirmed') {
+      return res.status(409).json({ error: '확정된 예약만 완료 처리할 수 있습니다.' })
+    }
+    if (new Date(booking.time_slots.end_time) > new Date()) {
+      return res.status(409).json({ error: '수업 종료 시간이 아직 지나지 않았습니다.' })
+    }
+    if (booking.completed_at) {
+      return res.status(409).json({ error: '이미 완료 처리된 예약입니다.' })
+    }
+
+    // 패키지 차감
+    let resolvedPackageId = package_id ?? null
+
+    if (resolvedPackageId) {
+      // 명시적으로 패키지가 지정된 경우 — completed_lessons 증가
+      const { data: pkg, error: pkgFetchErr } = await supabase
+        .from('lesson_packages')
+        .select('completed_lessons, total_lessons')
+        .eq('id', resolvedPackageId)
+        .eq('teacher_id', req.profile.id)
+        .single()
+
+      if (pkgFetchErr || !pkg) {
+        return res.status(404).json({ error: '패키지를 찾을 수 없습니다.' })
+      }
+      if (pkg.completed_lessons >= pkg.total_lessons) {
+        return res.status(409).json({ error: '패키지의 수업이 모두 소진되었습니다.' })
+      }
+
+      await supabase
+        .from('lesson_packages')
+        .update({ completed_lessons: pkg.completed_lessons + 1 })
+        .eq('id', resolvedPackageId)
+    }
+
+    const { data: updated, error: updateErr } = await supabase
+      .from('bookings')
+      .update({ completed_at: new Date().toISOString(), package_id: resolvedPackageId })
+      .eq('id', req.params.id)
+      .select('*, time_slots(*), profiles!student_id(full_name, email)')
+      .single()
+
+    if (updateErr) throw updateErr
+    res.json(updated)
+  } catch (err) { next(err) }
+})
+
 // PATCH /api/bookings/:id/cancel — 양쪽 모두 취소 가능
 router.patch('/:id/cancel', requireAuth, async (req, res, next) => {
   try {
