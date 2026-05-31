@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { format, addMinutes } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
@@ -30,7 +30,11 @@ export default function BookingHistory() {
     try {
       const data = await bookingsApi.getMyBookings()
       const now  = new Date()
-      setBookings(data.filter(b => new Date(b.time_slots.start_time) > now))
+      setBookings(
+        data
+          .filter(b => new Date(b.time_slots.start_time) > now)
+          .sort((a, b) => new Date(a.time_slots.start_time) - new Date(b.time_slots.start_time))
+      )
 
       const init = {}
       data.forEach(b => {
@@ -86,7 +90,7 @@ export default function BookingHistory() {
             <p className="text-sm font-medium text-gray-800">
               {format(new Date(b.time_slots.start_time), t('booking_history.date_format'), { locale: dateLocale })}
               {' ~ '}
-              {format(new Date(b.time_slots.end_time), 'HH:mm')}
+              {format(addMinutes(new Date(b.time_slots.start_time), b.second_slot ? 50 : 25), 'HH:mm')}
             </p>
             <p className="text-xs text-gray-500 mt-1">{t('booking_history.teacher_prefix')}: {b.teacher?.full_name}</p>
             {b.notes && <p className="text-xs text-gray-500 mt-1">{t('booking_history.memo_prefix')}: {b.notes}</p>}

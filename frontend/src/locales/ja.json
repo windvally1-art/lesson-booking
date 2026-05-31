@@ -68,7 +68,12 @@
     "date_month": "M月",
     "date_full": "yyyy年M月",
     "date_slot": "M月d日 (EEE) HH:mm",
-    "week_days": ["日", "月", "火", "水", "木", "金", "土"]
+    "week_days": ["日", "月", "火", "水", "木", "金", "土"],
+    "ticket_select_title": "どちらのチケットを使用しますか？",
+    "ticket_25min": "25分チケット（残り{{count}}枚）",
+    "ticket_50min": "50分チケット（残り{{count}}枚）",
+    "slot_exceed_error": "予約可能な時間帯を超えるため予約できません",
+    "cancel": "キャンセル"
   },
   "booking_history": {
     "title": "予約履歴",

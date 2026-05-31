@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
-import { slotsApi } from '../../api'
+import { slotsApi, bookingsApi } from '../../api'
 
 const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
   const h = String(Math.floor(i / 2)).padStart(2, '0')
@@ -17,12 +17,13 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
 
 const TABS = ['schedule', 'fixed']
 
-export default function SlotManager() {
+export default function SlotManager({ refreshKey }) {
   const { profile } = useAuth()
   const { t } = useTranslation()
   const dateLocale = useDateLocale()
 
   const [slots, setSlots]           = useState([])
+  const [myBookings, setMyBookings] = useState([])
   const [activeTab, setActiveTab]   = useState('schedule')
   const [baseDate, setBaseDate]     = useState(new Date())
   const [weekStart, setWeekStart]   = useState(
@@ -49,11 +50,16 @@ export default function SlotManager() {
     [weekStart]
   )
 
-  useEffect(() => { if (profile) loadSlots() }, [profile])
+  useEffect(() => { if (profile) loadSlots() }, [profile, refreshKey])
 
   async function loadSlots() {
     try {
-      setSlots(await slotsApi.getByTeacher(profile.id))
+      const [slotsData, bookingsData] = await Promise.all([
+        slotsApi.getByTeacher(profile.id),
+        bookingsApi.getMyBookings(),
+      ])
+      setSlots(slotsData)
+      setMyBookings(bookingsData.filter(b => b.status !== 'cancelled'))
     } catch {
       toast.error(t('slot_manager.error_load'))
     }
@@ -257,7 +263,12 @@ export default function SlotManager() {
                 const slot        = findSlot(day, time)
                 const key          = cellKey(day, time)
                 const past         = isPast(day, time)
-                const activeBooking = slot?.bookings?.find(b => b.status !== 'cancelled')
+                const primaryBooking   = slot?.bookings?.find(b => b.status !== 'cancelled')
+                const secondaryBooking = !primaryBooking
+                  ? myBookings.find(b => b.second_slot_id === slot?.id)
+                  : null
+                const activeBooking  = primaryBooking ?? secondaryBooking
+                const isSecondarySlot = !!secondaryBooking
                 const isPending    = activeBooking?.status === 'pending'
                 const isConfirmed  = activeBooking?.status === 'confirmed'
                 const booked       = slot && !slot.is_available
@@ -286,7 +297,7 @@ export default function SlotManager() {
                       : 'hover:bg-teal-50 cursor-pointer'
                     }`}
                   >
-                    {(isPending || isConfirmed) && studentName && (
+                    {(isPending || isConfirmed) && studentName && !isSecondarySlot && (
                       <span className={`absolute inset-0 flex items-center px-0.5 text-[10px] font-medium leading-none truncate ${past ? 'text-gray-500' : 'text-gray-700'}`}>
                         {studentName}
                       </span>

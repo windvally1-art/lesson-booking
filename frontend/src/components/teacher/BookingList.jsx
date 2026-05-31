@@ -1,15 +1,12 @@
 import { useEffect, useState } from 'react'
-import { format, differenceInMinutes } from 'date-fns'
+import { format, addMinutes } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { useDateLocale } from '../../hooks/useDateLocale'
 import toast from 'react-hot-toast'
 import { bookingsApi, packagesApi } from '../../api'
 
-function inferDuration(startTime, endTime) {
-  const mins = differenceInMinutes(new Date(endTime), new Date(startTime))
-  if (Math.abs(mins - 25) <= 5) return 25
-  if (Math.abs(mins - 50) <= 5) return 50
-  return null
+function inferDuration(booking) {
+  return booking.second_slot ? 50 : 25
 }
 
 function BookingItem({ b, onConfirm, onCancel }) {
@@ -41,7 +38,7 @@ function BookingItem({ b, onConfirm, onCancel }) {
       <p className="text-sm font-medium text-gray-800">
         {format(new Date(b.time_slots.start_time), t('booking_list.date_format'), { locale: dateLocale })}
         {' ~ '}
-        {format(new Date(b.time_slots.end_time), 'HH:mm')}
+        {format(addMinutes(new Date(b.time_slots.start_time), b.second_slot ? 50 : 25), 'HH:mm')}
       </p>
       <p className="text-xs mt-1 text-gray-500">{t('booking_list.student_prefix')}: {b.profiles?.full_name}</p>
       {b.notes && <p className="text-xs mt-1 text-gray-500">{t('booking_list.memo_prefix')}: {b.notes}</p>}
@@ -77,7 +74,7 @@ function BookingItem({ b, onConfirm, onCancel }) {
 function CompleteItem({ b, packages, onComplete }) {
   const { t } = useTranslation()
   const dateLocale = useDateLocale()
-  const duration  = inferDuration(b.time_slots.start_time, b.time_slots.end_time)
+  const duration  = inferDuration(b)
   const studentId = b.profiles?.id ?? b.student_id
 
   const studentPkgs = packages.filter(p => p.student?.id === studentId && p.is_active)
@@ -100,7 +97,7 @@ function CompleteItem({ b, packages, onComplete }) {
       <p className="text-sm font-medium text-gray-800">
         {format(new Date(b.time_slots.start_time), t('booking_list.date_format'), { locale: dateLocale })}
         {' ~ '}
-        {format(new Date(b.time_slots.end_time), 'HH:mm')}
+        {format(addMinutes(new Date(b.time_slots.start_time), b.second_slot ? 50 : 25), 'HH:mm')}
       </p>
       <p className="text-xs mt-1 text-gray-500">{t('booking_list.student_prefix')}: {b.profiles?.full_name}</p>
       {duration && (
@@ -141,7 +138,7 @@ function CompleteItem({ b, packages, onComplete }) {
   )
 }
 
-export default function BookingList() {
+export default function BookingList({ onRefresh }) {
   const { t } = useTranslation()
   const [upcoming, setUpcoming]       = useState([])
   const [awaitingComplete, setAwaiting] = useState([])
@@ -157,14 +154,18 @@ export default function BookingList() {
       ])
       const now = new Date()
       setUpcoming(
-        bookings.filter(b =>
-          new Date(b.time_slots.start_time) > now && b.status !== 'cancelled'
-        )
+        bookings
+          .filter(b => new Date(b.time_slots.start_time) > now && b.status !== 'cancelled')
+          .sort((a, b) => {
+            if (a.status === 'pending' && b.status !== 'pending') return -1
+            if (a.status !== 'pending' && b.status === 'pending') return 1
+            return new Date(a.time_slots.start_time) - new Date(b.time_slots.start_time)
+          })
       )
       setAwaiting(
         bookings.filter(b =>
           b.status === 'confirmed' &&
-          new Date(b.time_slots.end_time) < now &&
+          (b.second_slot ? new Date(b.second_slot.end_time) : addMinutes(new Date(b.time_slots.start_time), 25)) < now &&
           !b.completed_at
         )
       )
@@ -179,6 +180,7 @@ export default function BookingList() {
       await bookingsApi.confirm(id)
       toast.success(t('booking_list.confirm_success'))
       load()
+      onRefresh?.()
     } catch {
       toast.error(t('booking_list.confirm_error'))
     }
@@ -190,6 +192,7 @@ export default function BookingList() {
       await bookingsApi.cancel(id)
       toast.success(t('booking_list.cancel_success'))
       load()
+      onRefresh?.()
     } catch {
       toast.error(t('booking_list.cancel_error'))
     }

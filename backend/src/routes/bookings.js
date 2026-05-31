@@ -15,7 +15,8 @@ router.get('/me', requireAuth, async (req, res, next) => {
       .from('bookings')
       .select(`
         *,
-        time_slots(*),
+        time_slots!slot_id(*),
+        second_slot:time_slots!second_slot_id(start_time, end_time),
         profiles!student_id(id, full_name, email),
         teacher:profiles!teacher_id(id, full_name, email),
         notification_preferences(remind_1day, remind_1hour, remind_10min)
@@ -31,7 +32,7 @@ router.get('/me', requireAuth, async (req, res, next) => {
 // POST /api/bookings — 학생이 예약 생성
 router.post('/', requireAuth, requireRole('student'), async (req, res, next) => {
   try {
-    const { slot_id, teacher_id, notes, reminders } = req.body
+    const { slot_id, teacher_id, notes, reminders, second_slot_id } = req.body
     if (!slot_id || !teacher_id) {
       return res.status(400).json({ error: 'slot_id, teacher_id 필드가 필요합니다.' })
     }
@@ -48,6 +49,21 @@ router.post('/', requireAuth, requireRole('student'), async (req, res, next) => 
       return res.status(409).json({ error: '이미 예약된 슬롯이거나 존재하지 않습니다.' })
     }
 
+    // 50분 예약: 두 번째 슬롯 가용 여부 확인
+    if (second_slot_id) {
+      const { data: slot2 } = await supabase
+        .from('time_slots')
+        .select('*')
+        .eq('id', second_slot_id)
+        .eq('is_available', true)
+        .eq('teacher_id', teacher_id)
+        .single()
+
+      if (!slot2) {
+        return res.status(409).json({ error: '두 번째 슬롯이 이미 예약되었거나 존재하지 않습니다.' })
+      }
+    }
+
     // 예약 생성 + 슬롯 비활성화 (트랜잭션 대신 순차 처리)
     const { data: booking, error: bookErr } = await supabase
       .from('bookings')
@@ -56,16 +72,18 @@ router.post('/', requireAuth, requireRole('student'), async (req, res, next) => 
         student_id: req.profile.id,
         teacher_id,
         notes,
+        second_slot_id: second_slot_id ?? null,
       })
-      .select(`*, time_slots(*), teacher:profiles!teacher_id(full_name, email)`)
+      .select(`*, time_slots!slot_id(*), teacher:profiles!teacher_id(full_name, email)`)
       .single()
 
     if (bookErr) throw bookErr
 
+    const slotIdsToBlock = [slot_id, ...(second_slot_id ? [second_slot_id] : [])]
     await supabase
       .from('time_slots')
       .update({ is_available: false })
-      .eq('id', slot_id)
+      .in('id', slotIdsToBlock)
 
     // 알림 설정 저장 (기본값: 모두 ON)
     const { error: prefErr } = await supabase.from('notification_preferences').insert({
@@ -92,7 +110,7 @@ router.patch('/:id/confirm', requireAuth, requireRole('teacher'), async (req, re
       .eq('id', req.params.id)
       .eq('teacher_id', req.profile.id)
       .eq('status', 'pending')
-      .select(`*, time_slots(*), profiles!student_id(full_name, email)`)
+      .select(`*, time_slots!slot_id(*), profiles!student_id(full_name, email)`)
       .single()
 
     if (error) throw error
@@ -127,7 +145,7 @@ router.patch('/:id/complete', requireAuth, requireRole('teacher'), async (req, r
     // 예약 + 슬롯 조회
     const { data: booking, error: fetchErr } = await supabase
       .from('bookings')
-      .select('*, time_slots(start_time, end_time)')
+      .select('*, time_slots!slot_id(start_time, end_time)')
       .eq('id', req.params.id)
       .eq('teacher_id', req.profile.id)
       .single()
@@ -174,7 +192,7 @@ router.patch('/:id/complete', requireAuth, requireRole('teacher'), async (req, r
       .from('bookings')
       .update({ completed_at: new Date().toISOString(), package_id: resolvedPackageId })
       .eq('id', req.params.id)
-      .select('*, time_slots(*), profiles!student_id(full_name, email)')
+      .select('*, time_slots!slot_id(*), profiles!student_id(full_name, email)')
       .single()
 
     if (updateErr) throw updateErr
@@ -211,11 +229,12 @@ router.patch('/:id/cancel', requireAuth, async (req, res, next) => {
 
     if (error) throw error
 
-    // 슬롯 다시 활성화
+    // 슬롯 다시 활성화 (50분 예약의 경우 두 슬롯 모두)
+    const slotIdsToRestore = [existing.slot_id, ...(existing.second_slot_id ? [existing.second_slot_id] : [])]
     await supabase
       .from('time_slots')
       .update({ is_available: true })
-      .eq('id', existing.slot_id)
+      .in('id', slotIdsToRestore)
 
     sendBookingEmail('cancellation', data, req.profile).catch(console.error)
 

@@ -68,7 +68,12 @@
     "date_month": "M월",
     "date_full": "yyyy년 M월",
     "date_slot": "M월 d일 (EEE) HH:mm",
-    "week_days": ["일", "월", "화", "수", "목", "금", "토"]
+    "week_days": ["일", "월", "화", "수", "목", "금", "토"],
+    "ticket_select_title": "어느 티켓을 사용하시겠습니까?",
+    "ticket_25min": "25분 티켓 (잔여 {{count}}장)",
+    "ticket_50min": "50분 티켓 (잔여 {{count}}장)",
+    "slot_exceed_error": "예약가능 시간대를 초과하기 때문에 예약불가",
+    "cancel": "취소"
   },
   "booking_history": {
     "title": "예약 내역",

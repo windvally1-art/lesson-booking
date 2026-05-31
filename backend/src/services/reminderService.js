@@ -45,7 +45,7 @@ async function processStage(stage, now) {
       ${stage.enableCol}, ${stage.sentCol},
       bookings (
         id, student_id, teacher_id, status,
-        time_slots ( start_time ),
+        time_slots!slot_id ( start_time ),
         student:profiles!student_id ( full_name, email ),
         teacher:profiles!teacher_id ( full_name, email )
       )

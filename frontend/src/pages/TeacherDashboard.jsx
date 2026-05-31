@@ -1,12 +1,15 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import SlotManager    from '../components/teacher/SlotManager'
 import BookingList    from '../components/teacher/BookingList'
 import PackageManager from '../components/teacher/PackageManager'
 
 export default function TeacherDashboard() {
-  const [activeTab, setActiveTab] = useState('schedule')
+  const [activeTab, setActiveTab]   = useState('schedule')
+  const [refreshKey, setRefreshKey] = useState(0)
   const { t } = useTranslation()
+
+  const triggerRefresh = useCallback(() => setRefreshKey(k => k + 1), [])
 
   const TABS = [
     { id: 'schedule', label: t('teacher_dashboard.tab_schedule') },
@@ -34,10 +37,10 @@ export default function TeacherDashboard() {
       {activeTab === 'schedule' && (
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           <div className="lg:col-span-3">
-            <SlotManager />
+            <SlotManager refreshKey={refreshKey} />
           </div>
           <div className="lg:col-span-2">
-            <BookingList />
+            <BookingList onRefresh={triggerRefresh} />
           </div>
         </div>
       )}
