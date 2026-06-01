@@ -19,6 +19,20 @@ router.get('/available', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 })
 
+// GET /api/slots/all — 학생용: 예약 여부 무관하게 미래 슬롯 전체 (다른 학생 예약 포함)
+router.get('/all', requireAuth, async (req, res, next) => {
+  try {
+    const { data, error } = await supabase
+      .from('time_slots')
+      .select('*, profiles!teacher_id(id, full_name)')
+      .gte('start_time', new Date().toISOString())
+      .order('start_time')
+
+    if (error) throw error
+    res.json(data)
+  } catch (err) { next(err) }
+})
+
 // GET /api/slots?teacher_id=... — 선생님 본인 슬롯
 router.get('/', requireAuth, async (req, res, next) => {
   try {

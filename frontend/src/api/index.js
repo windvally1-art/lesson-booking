@@ -24,6 +24,10 @@ export const slotsApi = {
   getAvailable: () =>
     api.get('/api/slots/available').then(r => r.data),
 
+  // 선생님이 등록한 전체 슬롯 (예약 여부 포함, 학생 캘린더용)
+  getAll: () =>
+    api.get('/api/slots/all').then(r => r.data),
+
   create: (payload) =>
     api.post('/api/slots', payload).then(r => r.data),
 

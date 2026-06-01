@@ -73,7 +73,9 @@
     "ticket_25min": "25분 티켓 (잔여 {{count}}장)",
     "ticket_50min": "50분 티켓 (잔여 {{count}}장)",
     "slot_exceed_error": "예약가능 시간대를 초과하기 때문에 예약불가",
-    "cancel": "취소"
+    "cancel": "취소",
+    "no_slots": "이 날은 예약 가능한 시간이 없습니다.",
+    "legend_unavailable": "예약 불가"
   },
   "booking_history": {
     "title": "예약 내역",

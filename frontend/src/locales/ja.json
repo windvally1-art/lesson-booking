@@ -73,7 +73,9 @@
     "ticket_25min": "25分チケット（残り{{count}}枚）",
     "ticket_50min": "50分チケット（残り{{count}}枚）",
     "slot_exceed_error": "予約可能な時間帯を超えるため予約できません",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "no_slots": "この日は予約可能な時間がありません。",
+    "legend_unavailable": "予約不可"
   },
   "booking_history": {
     "title": "予約履歴",
