@@ -79,7 +79,11 @@ export default function BookingHistory() {
           <p className="text-sm text-gray-400 text-center py-4">{t('booking_history.empty')}</p>
         )}
 
-        {bookings.map(b => (
+        {bookings.map(b => {
+          const canCancel =
+            b.status !== 'cancelled' &&
+            new Date(b.time_slots.start_time) > new Date(Date.now() + 6 * 60 * 60 * 1000)
+          return (
           <li key={b.id} className="border border-gray-100 rounded-xl p-4">
             <div className="flex items-center justify-between mb-2">
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLOR[b.status]}`}>
@@ -104,7 +108,7 @@ export default function BookingHistory() {
               </div>
             )}
 
-            {b.status !== 'cancelled' && (
+            {canCancel && (
               <button
                 onClick={() => handleCancel(b.id)}
                 className="mt-3 text-xs text-red-400 hover:text-red-600 transition-colors"
@@ -113,7 +117,8 @@ export default function BookingHistory() {
               </button>
             )}
           </li>
-        ))}
+          )
+        })}
       </ul>
     </section>
   )

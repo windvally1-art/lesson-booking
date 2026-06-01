@@ -20,18 +20,18 @@ function PackageCard({ pkg }) {
     <div className={`border rounded-xl p-4 ${colors.card}`}>
       <div className="flex items-center justify-between">
         <div>
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
+          <span className={`text-sm font-semibold px-2 py-0.5 rounded-full ${colors.badge}`}>
             {durationLabel} {t('package_status.lesson_suffix')}
           </span>
           {pkg.label && (
-            <p className="text-xs text-gray-400 mt-1">{pkg.label}</p>
+            <p className="text-sm text-gray-400 mt-1">{pkg.label}</p>
           )}
         </div>
         <div className="text-right">
-          <p className={`text-2xl font-bold ${isFinished ? 'text-orange-500' : 'text-gray-800'}`}>
+          <p className={`text-3xl font-bold ${isFinished ? 'text-orange-500' : 'text-gray-800'}`}>
             {remaining}
           </p>
-          <p className="text-xs text-gray-400">{t('package_status.remaining')}</p>
+          <p className="text-sm text-gray-400">{t('package_status.remaining')}</p>
         </div>
       </div>
 
@@ -41,7 +41,7 @@ function PackageCard({ pkg }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-xs text-gray-500 mt-1">
+      <p className="text-sm text-gray-500 mt-1">
         {t('package_status.completed_label')} <span className="font-medium">{pkg.completed_lessons}</span>{t('package_status.sessions_suffix')} /
         {' '}{t('package_status.total_label')} <span className="font-medium">{pkg.total_lessons}</span>{t('package_status.sessions_suffix')}
         {isFinished && (
@@ -69,7 +69,7 @@ export default function PackageStatus() {
   if (packages.length === 0) {
     return (
       <section className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-        <h3 className="text-base font-semibold text-gray-800 mb-2">{t('package_status.title')}</h3>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">{t('package_status.title')}</h3>
         <p className="text-sm text-gray-400">
           {t('package_status.empty')}
         </p>
@@ -79,7 +79,7 @@ export default function PackageStatus() {
 
   return (
     <section className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-      <h3 className="text-base font-semibold text-gray-800 mb-3">{t('package_status.title')}</h3>
+      <h3 className="text-lg font-semibold text-gray-800 mb-3">{t('package_status.title')}</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {packages.map(pkg => (
           <PackageCard key={pkg.id} pkg={pkg} />
