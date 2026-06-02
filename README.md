@@ -1,5 +1,7 @@
 # 수업 예약 앱
 
+[日本語版はこちら](./README.ja.md)
+
 1:1 수업 예약 시스템 — React + Vite 프론트엔드 / Node.js + Express 백엔드 / Supabase
 
 ## 주요 기능
