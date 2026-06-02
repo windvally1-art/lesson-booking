@@ -203,31 +203,39 @@ export default function BookingCalendar() {
         <PushPermission />
       </div>
 
-      {/* Duration picker */}
+      {/* Duration picker 모달 */}
       {showDurationPicker && pendingSlot && (
-        <div className="border-b border-gray-100 px-4 py-4 bg-amber-50">
-          <p className="text-sm font-semibold text-gray-700 mb-3">
-            {t('booking_calendar.ticket_select_title')}
-          </p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => selectFor25Min(pendingSlot)}
-              className="flex-1 py-2 rounded-xl border-2 border-sky-400 text-sky-700 bg-sky-50 text-sm font-semibold hover:bg-sky-100 transition-colors"
-            >
-              {t('booking_calendar.ticket_25min', { count: remaining25 })}
-            </button>
-            <button
-              onClick={() => selectFor50Min(pendingSlot)}
-              className="flex-1 py-2 rounded-xl border-2 border-violet-400 text-violet-700 bg-violet-50 text-sm font-semibold hover:bg-violet-100 transition-colors"
-            >
-              {t('booking_calendar.ticket_50min', { count: remaining50 })}
-            </button>
-            <button
-              onClick={() => { setShowDurationPicker(false); setPendingSlot(null) }}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-gray-500 text-sm hover:bg-gray-50 transition-colors"
-            >
-              {t('booking_calendar.cancel')}
-            </button>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          onClick={() => { setShowDurationPicker(false); setPendingSlot(null) }}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl px-6 py-5 mx-4 w-full max-w-sm"
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-gray-700 mb-4">
+              {t('booking_calendar.ticket_select_title')}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={() => selectFor25Min(pendingSlot)}
+                className="w-full py-2.5 rounded-xl border-2 border-sky-400 text-sky-700 bg-sky-50 text-sm font-semibold hover:bg-sky-100 transition-colors"
+              >
+                {t('booking_calendar.ticket_25min', { count: remaining25 })}
+              </button>
+              <button
+                onClick={() => selectFor50Min(pendingSlot)}
+                className="w-full py-2.5 rounded-xl border-2 border-violet-400 text-violet-700 bg-violet-50 text-sm font-semibold hover:bg-violet-100 transition-colors"
+              >
+                {t('booking_calendar.ticket_50min', { count: remaining50 })}
+              </button>
+              <button
+                onClick={() => { setShowDurationPicker(false); setPendingSlot(null) }}
+                className="w-full py-2 rounded-xl border border-gray-200 text-gray-500 text-sm hover:bg-gray-50 transition-colors"
+              >
+                {t('booking_calendar.cancel')}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -249,7 +257,7 @@ export default function BookingCalendar() {
           >‹</button>
           <button
             onClick={() => setShowCalendar(p => !p)}
-            className="text-sm font-semibold text-gray-700 flex items-center gap-1 hover:text-teal-500 transition-colors"
+            className="text-base font-semibold text-gray-700 flex items-center gap-1 hover:text-teal-500 transition-colors"
           >
             {format(selectedDate, t('booking_calendar.date_month'), { locale: dateLocale })}
             <span className={`text-base transition-transform duration-200 ${showCalendar ? 'rotate-180' : ''}`}>▾</span>
@@ -274,10 +282,10 @@ export default function BookingCalendar() {
                   isSelected ? 'bg-teal-500' : 'hover:bg-gray-50'
                 }`}
               >
-                <span className={`text-[11px] ${isSelected ? 'text-teal-100' : 'text-gray-400'}`}>
+                <span className={`text-sm ${isSelected ? 'text-teal-100' : 'text-gray-400'}`}>
                   {weekDayLabels[i]}
                 </span>
-                <span className={`text-sm font-semibold mt-0.5 ${
+                <span className={`text-base font-semibold mt-0.5 ${
                   isSelected ? 'text-white'
                   : today    ? 'text-red-500'
                   :            'text-gray-700'
@@ -337,7 +345,7 @@ export default function BookingCalendar() {
         {selectedDateSlots.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-6">{t('booking_calendar.no_slots')}</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-0">
             {selectedDateSlots.map(slot => {
               const time        = format(new Date(slot.start_time), 'HH:mm')
               const myBooking   = findMyBookingBySlot(slot)
@@ -360,7 +368,7 @@ export default function BookingCalendar() {
                 <li key={slot.id}>
                   <button
                     onClick={() => handleSlotClick(slot)}
-                    className={`w-full text-left px-3 py-2 rounded-xl transition-colors ${textClass}`}
+                    className={`w-full text-left px-3 py-0.5 rounded-xl transition-colors ${textClass}`}
                   >
                     <span>{time}</span>
                     {isPending   && <span className="ml-2 text-xs opacity-70">{t('booking_calendar.my_pending')}</span>}
